@@ -1,1 +1,67 @@
-hacknation frontend React webapp
+# HackNation Frontend
+
+A React chatbot webapp built with Next.js that uses API routes for proxying requests to a Python backend AI model.
+
+## Features
+
+- Next.js 13+ with App Router
+- TypeScript support
+- Tailwind CSS for styling
+- Rounded chatbot interface with chat history
+- API routes that proxy to Python backend
+- Clean, modern UI design
+
+## Getting Started
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Configure your Python backend URL:
+Create a `.env.local` file in the root directory:
+```
+PYTHON_BACKEND_URL=http://localhost:8000
+```
+
+3. Start the development server:
+```bash
+npm run dev
+```
+
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## API Routes
+
+### Generic Proxy
+- `GET/POST/PUT/DELETE /api/proxy?path=/your-endpoint`
+
+### Chatbot API
+- `POST /api/proxy?path=/prompt` - Send message to AI model
+
+All API routes proxy requests to your Python backend using the `PYTHON_BACKEND_URL` environment variable.
+
+## Python Backend Requirements
+
+Your Python backend should expose a `/prompt` endpoint that accepts POST requests with JSON payload:
+
+```json
+{
+  "message": "User's message here"
+}
+```
+
+And returns a response in this format:
+
+```json
+{
+  "response": "AI model's response here"
+}
+```
+
+## Building for Production
+
+```bash
+npm run build
+npm start
+```
