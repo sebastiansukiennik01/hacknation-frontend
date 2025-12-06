@@ -8,6 +8,7 @@ A React chatbot webapp built with Next.js that uses API routes for proxying requ
 - TypeScript support
 - Tailwind CSS for styling
 - Rounded chatbot interface with chat history
+- Agent instructions input for longer-form configuration
 - API routes that proxy to Python backend
 - Clean, modern UI design
 
@@ -37,17 +38,25 @@ npm run dev
 - `GET/POST/PUT/DELETE /api/proxy?path=/your-endpoint`
 
 ### Chatbot API
-- `POST /api/proxy?path=/prompt` - Send message to AI model
+- `POST /api/prompt` - Send message to AI model or agent instructions
 
 All API routes proxy requests to your Python backend using the `PYTHON_BACKEND_URL` environment variable.
 
 ## Python Backend Requirements
 
-Your Python backend should expose a `/prompt` endpoint that accepts POST requests with JSON payload:
+Your Python backend should expose a `/prompt` endpoint that accepts POST requests with JSON payload for both regular messages and instructions:
 
+**Regular Messages:**
 ```json
 {
-  "message": "User's message here"
+  "prompt": "User's message content"
+}
+```
+
+**Agent Instructions:**
+```json
+{
+  "instructions": "Long-form instructions for the agent"
 }
 ```
 
@@ -55,7 +64,7 @@ And returns a response in this format:
 
 ```json
 {
-  "response": "AI model's response here"
+  "response": "AI model's reply"
 }
 ```
 

@@ -11,6 +11,8 @@ interface Message {
 export default function Chatbot() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
+  const [instructions, setInstructions] = useState('');
+  const [showInstructions, setShowInstructions] = useState(false);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -63,6 +65,48 @@ export default function Chatbot() {
       const errorMessage: Message = {
         role: 'assistant',
         content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendInstructions = async () => {
+    if (!instructions.trim() || loading) return;
+
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/instructions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ instructions: instructions.trim() }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send instructions');
+      }
+
+      const data = await response.json();
+
+      const successMessage: Message = {
+        role: 'assistant',
+        content: data.response || data.message || 'Instructions updated successfully',
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, successMessage]);
+      setInstructions('');
+      setShowInstructions(false);
+    } catch (error) {
+      console.error('Instructions error:', error);
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: 'Failed to update instructions. Please try again.',
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -130,6 +174,35 @@ export default function Chatbot() {
 
         {/* Input */}
         <div className="border-t p-4 flex-shrink-0">
+          {showInstructions && (
+            <div className="mb-4">
+              <textarea
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+                placeholder="Enter instructions for the agent..."
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 resize-none"
+                rows={4}
+                disabled={loading}
+              />
+              <div className="flex justify-end space-x-2 mt-2">
+                <button
+                  onClick={() => setShowInstructions(false)}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={sendInstructions}
+                  disabled={loading || !instructions.trim()}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Sending...' : 'Send Instructions'}
+                </button>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={sendMessage} className="flex space-x-2">
             <input
               type="text"
@@ -139,6 +212,14 @@ export default function Chatbot() {
               className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               disabled={loading}
             />
+            <button
+              type="button"
+              onClick={() => setShowInstructions(!showInstructions)}
+              className="px-4 py-2 bg-gray-600 text-white rounded-full hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
+              disabled={loading}
+            >
+              Instructions
+            </button>
             <button
               type="submit"
               disabled={loading || !input.trim()}
