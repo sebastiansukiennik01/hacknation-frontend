@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -15,6 +17,27 @@ export default function Chatbot() {
   const [showInstructions, setShowInstructions] = useState(false);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Function to extract response content if message contains JSON with response field
+  const getDisplayContent = (content: string) => {
+    try {
+      // Check if content looks like JSON
+      if (content.trim().startsWith('{') && content.trim().endsWith('}')) {
+        const parsed = JSON.parse(content);
+        if (parsed && typeof parsed === 'object' && 'response' in parsed) {
+          return parsed.response;
+        }
+      }
+      // If content contains "response": try to extract it
+      const responseMatch = content.match(/"response"\s*:\s*"([^"]*)"/);
+      if (responseMatch) {
+        return responseMatch[1];
+      }
+    } catch (error) {
+      // If parsing fails, return original content
+    }
+    return content;
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -143,7 +166,11 @@ export default function Chatbot() {
                       : 'bg-gray-200 text-gray-800 rounded-bl-none'
                   }`}
                 >
-                  <p className="text-base">{message.content}</p>
+                  <div className="text-base prose prose-sm max-w-none prose-headings:text-inherit prose-p:text-inherit prose-strong:text-inherit prose-code:text-inherit prose-pre:bg-gray-100 prose-pre:border prose-pre:border-gray-200 prose-ul:text-inherit prose-ol:text-inherit prose-li:text-inherit">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {getDisplayContent(message.content)}
+                    </ReactMarkdown>
+                  </div>
                   <p className={`text-xs mt-1 ${
                     message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
                   }`}>
