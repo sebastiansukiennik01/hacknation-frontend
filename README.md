@@ -9,6 +9,7 @@ A React chatbot webapp built with Next.js that uses API routes for proxying requ
 - Tailwind CSS for styling
 - Rounded chatbot interface with chat history
 - Agent instructions input for longer-form configuration
+- Markdown rendering for rich text responses
 - API routes that proxy to Python backend
 - Clean, modern UI design
 
@@ -67,6 +68,10 @@ And returns a response in this format:
   "response": "AI model's reply"
 }
 ```
+
+## Response Handling
+
+The frontend automatically extracts the `response` field from API responses for display. If your backend returns complex JSON with a `response` field, only the content of that field will be displayed to the user, allowing for clean separation of metadata and display content.
 
 ## Building for Production
 
