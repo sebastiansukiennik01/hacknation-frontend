@@ -4,11 +4,33 @@ import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+interface Tool {
+  name: string;
+  description: string;
+  data?: any;
+}
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  tools?: Tool[];
 }
+
+const getDisplayContent = (content: string) => {
+  try {
+    // Try to parse as JSON
+    const parsed = JSON.parse(content);
+    if (parsed && typeof parsed === 'object' && 'response' in parsed) {
+      return parsed.response;
+    }
+    // If no response field, return original content
+    return content;
+  } catch (error) {
+    // If not valid JSON, return original content
+    return content;
+  }
+};
 
 export default function Chatbot() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -18,25 +40,60 @@ export default function Chatbot() {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Function to extract response content if message contains JSON with response field
-  const getDisplayContent = (content: string) => {
+  // Function to extract response content and tools if message contains JSON with response/tools fields
+  const parseResponseData = (rawData: any): { content: string; tools?: Tool[] } => {
     try {
-      // Check if content looks like JSON
-      if (content.trim().startsWith('{') && content.trim().endsWith('}')) {
-        const parsed = JSON.parse(content);
-        if (parsed && typeof parsed === 'object' && 'response' in parsed) {
-          return parsed.response;
+      let content = '';
+      let tools: Tool[] | undefined;
+
+      // If rawData is already an object (from API response)
+      if (typeof rawData === 'object' && rawData !== null) {
+        content = rawData.response || rawData.message || 'No response received';
+
+        // Extract tools if present
+        if (rawData.tools && Array.isArray(rawData.tools)) {
+          tools = rawData.tools.map((tool: any) => ({
+            name: tool.name || 'Unknown Tool',
+            description: tool.description || 'No description available',
+            data: tool.data || tool
+          }));
         }
+      } else if (typeof rawData === 'string') {
+        // If content is a string, check if it looks like JSON
+        if (rawData.trim().startsWith('{') && rawData.trim().endsWith('}')) {
+          const parsed = JSON.parse(rawData);
+          if (parsed && typeof parsed === 'object') {
+            content = parsed.response || parsed.message || rawData;
+
+            // Extract tools if present
+            if (parsed.tools && Array.isArray(parsed.tools)) {
+              tools = parsed.tools.map((tool: any) => ({
+                name: tool.name || 'Unknown Tool',
+                description: tool.description || 'No description available',
+                data: tool.data || tool
+              }));
+            }
+          } else {
+            content = rawData;
+          }
+        } else {
+          // If content contains "response": try to extract it
+          const responseMatch = rawData.match(/"response"\s*:\s*"([^"]*)"/);
+          if (responseMatch) {
+            content = responseMatch[1];
+          } else {
+            content = rawData;
+          }
+        }
+      } else {
+        content = String(rawData);
       }
-      // If content contains "response": try to extract it
-      const responseMatch = content.match(/"response"\s*:\s*"([^"]*)"/);
-      if (responseMatch) {
-        return responseMatch[1];
-      }
+
+      return { content, tools };
     } catch (error) {
       // If parsing fails, return original content
+      return { content: String(rawData) };
     }
-    return content;
   };
 
   const scrollToBottom = () => {
@@ -76,10 +133,13 @@ export default function Chatbot() {
 
       const data = await response.json();
 
+      const { content, tools } = parseResponseData(data);
+
       const assistantMessage: Message = {
         role: 'assistant',
-        content: data.response || data.message || 'No response received',
+        content,
         timestamp: new Date(),
+        tools,
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -116,10 +176,13 @@ export default function Chatbot() {
 
       const data = await response.json();
 
+      const { content, tools } = parseResponseData(data);
+
       const successMessage: Message = {
         role: 'assistant',
-        content: data.response || data.message || 'Instructions updated successfully',
+        content: content || 'Instructions updated successfully',
         timestamp: new Date(),
+        tools,
       };
 
       setMessages(prev => [...prev, successMessage]);
@@ -171,6 +234,29 @@ export default function Chatbot() {
                       {getDisplayContent(message.content)}
                     </ReactMarkdown>
                   </div>
+
+                  {/* Tools */}
+                  {message.tools && message.tools.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {message.tools.map((tool, toolIndex) => (
+                        <div key={toolIndex} className="relative group">
+                          <button
+                            className="text-xs px-2 py-1 bg-gray-300 text-gray-700 rounded-full hover:bg-gray-400 transition-colors"
+                            title={tool.description}
+                          >
+                            {tool.name}
+                          </button>
+
+                          {/* Hover tooltip */}
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                            {tool.description}
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <p className={`text-xs mt-1 ${
                     message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
                   }`}>

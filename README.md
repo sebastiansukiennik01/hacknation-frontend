@@ -65,13 +65,68 @@ And returns a response in this format:
 
 ```json
 {
-  "response": "AI model's reply"
+  "response": "AI model's reply",
+  "tools": [...],
+  "tools_used": [...],
+  "user_id": "user123",
+  "session_id": "session456",
+  "success": true
 }
 ```
+
+The frontend will automatically extract and display the `response` field content.
 
 ## Response Handling
 
 The frontend automatically extracts the `response` field from API responses for display. If your backend returns complex JSON with a `response` field, only the content of that field will be displayed to the user, allowing for clean separation of metadata and display content.
+
+## Tools Integration
+
+If your AI responses include a `tools` array, the frontend will display small tool buttons below the message. Each tool button shows:
+
+- **Tool Name**: Displayed on the button
+- **Description**: Shown on hover in a tooltip
+
+Example API response with tools:
+```json
+{
+  "response": "I've analyzed your request using the following tools:",
+  "tools": [
+    {
+      "name": "Web Search",
+      "description": "Searched for current information about AI chatbots"
+    },
+    {
+      "name": "Data Analysis",
+      "description": "Processed and analyzed the retrieved data"
+    }
+  ]
+}
+```
+
+## Tools Integration
+
+If your AI responses include a `tools` array, the frontend will display small tool buttons below the message. Each tool button shows:
+
+- **Tool Name**: Displayed on the button
+- **Description**: Shown on hover in a tooltip
+
+Example API response with tools:
+```json
+{
+  "response": "I've analyzed your request using the following tools:",
+  "tools": [
+    {
+      "name": "Web Search",
+      "description": "Searched for information about AI chatbots"
+    },
+    {
+      "name": "Calculator",
+      "description": "Performed mathematical calculations"
+    }
+  ]
+}
+```
 
 ## Building for Production
 
